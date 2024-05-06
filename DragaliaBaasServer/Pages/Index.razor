@@ -1,0 +1,202 @@
+﻿@page "/"
+@using System.Security.Claims
+@using DragaliaBaasServer.Models.Web
+@using DragaliaBaasServer.Services
+@inject IHostEnvironmentAuthenticationStateProvider Authentication
+@inject IAccountService Account
+@inject ISavefileService Savefile
+@inject PatreonService Patreon
+@inject NavigationManager Navigation
+
+<PageTitle>Index</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="mainpage">
+            @if (context.User.HasClaim(ClaimTypes.Role, "Administrator"))
+            {
+                <a href="/admin">Admin Panel</a>
+            }
+            <div>
+                You are <b>logged in</b>.
+            </div>
+            <div>
+                Username: <b>@context.User.Identity?.Name</b>
+            </div>
+            <div>
+                Linked device count: <b>@GetLinkedAccounts(context)</b>
+            </div>
+            <button @onclick="() => UnlinkAccounts(context)" class="red-button">Unlink accounts</button>
+            <div>
+                Save file last uploaded at: @GetSavefileUploadDate(context)
+            </div>
+            @if (SavefileStatus is SavefileUploadStatus.NotStarted or SavefileUploadStatus.Errored)
+            {
+                <InputFile OnChange="(e) => UploadSavefile(context, e)" accept=".json, .txt" id="file-input" class="hide-input" />
+                <label for="file-input">
+                    <div class="filebox" ondrop="onFrameworkDrop">
+                        <div>
+                            Click to select a local file.
+                        </div>
+                    </div>
+                </label>
+            }
+            
+            @if (SavefileStatus != SavefileUploadStatus.NotStarted)
+            {
+                <div>
+                    @GetSavefileText()
+                </div>
+            }
+            
+            <button @onclick="Logout" class="red-button">Logout</button>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="mainpage">
+            <div>
+                You are <b>not</b> logged in.
+            </div>
+            <div>
+                <a href="/login" class="button-href">Login</a>
+            </div>
+            <div>
+                <a href="/register" class="button-href">Register</a>
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+
+@code
+{
+    /*
+       @{
+       //    var patreonId = GetLinkedPatreonId(context);
+       //}
+       //
+       //@if (patreonId == "")
+       //{
+       //    <button @onclick="() => DoPatreonLink(context)" class="green-button">Link Patreon account</button>
+       //}
+       //else
+       //{
+       //    <div>
+       //        Linked Patreon account: @patreonId
+       //        <button @onclick="() => UnlinkPatreon(context)" class="red-button">Unlink Patreon account</button>
+       //    </div>
+       //}
+     */
+
+    /*
+     *                             Drag and drop your save file here.
+                            <br>
+                            <b>Alternatively</b>, click to select a local file.
+     */
+
+    SavefileUploadStatus SavefileStatus { get; set; } = SavefileUploadStatus.NotStarted;
+
+    string GetLinkedAccounts(AuthenticationState context)
+    {
+        if (!Account.TryGetWebAccount(context.User.FindFirst(ClaimTypes.NameIdentifier)!.Value, out var webAccount))
+            return "Error: Account not found!";
+
+        var count = Account.GetAssociatedDeviceAccountsCount(webAccount);
+        return count == 0 
+            ? "None!" 
+            : count.ToString();
+    }
+
+    void UnlinkAccounts(AuthenticationState context)
+    {
+        if (!Account.TryGetWebAccount(context.User.FindFirst(ClaimTypes.NameIdentifier)!.Value, out var webAccount))
+            return;
+
+        Account.UnlinkAccounts(webAccount);
+        Account.SaveChanges();
+    }
+
+    string GetSavefileUploadDate(AuthenticationState context)
+    {
+        if (!Account.TryGetWebAccount(context.User.FindFirst(ClaimTypes.NameIdentifier)!.Value, out var webAccount))
+            return "Error: Account not found!";
+
+        return webAccount.HasSavefile ? DateTimeOffset.FromUnixTimeSeconds(webAccount.SavefileUploadedAt).ToString() : "Never!";
+    }
+
+    string GetLinkedPatreonId(AuthenticationState context)
+    {
+        if (!Account.TryGetWebAccount(context.User.FindFirst(ClaimTypes.NameIdentifier)!.Value, out var webAccount))
+            return "";
+
+        return webAccount.LinkedPatreonUserId;
+    }
+
+    void Logout()
+    {
+        Authentication.SetAuthenticationState(Task.FromResult(new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()))));
+    }
+
+    async Task UploadSavefile(AuthenticationState context, InputFileChangeEventArgs e)
+    {
+        if (!Account.TryGetWebAccount(context.User.FindFirst(ClaimTypes.NameIdentifier)!.Value, out var webAccount))
+            return;
+
+        SavefileStatus = SavefileUploadStatus.Uploading;
+
+        bool result;
+
+        {
+            const long maxFileSize = 1024 * 1024 * 5; // 5MB
+            await using var fs = e.File.OpenReadStream(maxFileSize);
+            result = await Savefile.SaveSavefile(webAccount, fs);
+        }
+
+        if (result)
+        {
+            SavefileStatus = SavefileUploadStatus.Uploaded;
+            await Account.SaveChangesAsync();
+        }
+        else
+        {
+            SavefileStatus = SavefileUploadStatus.Errored;
+        }
+    }
+
+    void DeleteSavefile(AuthenticationState context)
+    {
+        if (!Account.TryGetWebAccount(context.User.FindFirst(ClaimTypes.NameIdentifier)!.Value, out var webAccount))
+            return;
+
+        Savefile.DeleteSavefile(webAccount);
+    }
+
+    string GetSavefileText()
+    {
+        return SavefileStatus switch
+        {
+            SavefileUploadStatus.Errored => "Failed to upload save file.",
+            SavefileUploadStatus.Uploaded => "Uploaded save file successfully.",
+            SavefileUploadStatus.Uploading => "Uploading save file. Please wait!",
+            _ => "Invalid save file state."
+        };
+    }
+
+    void DoPatreonLink(AuthenticationState context)
+    {
+        if (!Account.TryGetWebAccount(context.User.FindFirst(ClaimTypes.NameIdentifier)!.Value, out var webAccount))
+            return;
+
+        var url = Patreon.BuildPatreonAuthUrl(webAccount);
+        Navigation.NavigateTo(url);
+    }
+
+    void UnlinkPatreon(AuthenticationState context)
+    {
+        if (!Account.TryGetWebAccount(context.User.FindFirst(ClaimTypes.NameIdentifier)!.Value, out var webAccount))
+            return;
+
+        webAccount.LinkedPatreonUserId = "";
+        Account.SaveChanges();
+    }
+}

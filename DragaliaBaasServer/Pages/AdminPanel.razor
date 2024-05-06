@@ -1,0 +1,89 @@
+﻿@page "/admin"
+@using DragaliaBaasServer.Database.Repositories
+@using DragaliaBaasServer.Models.Backend
+@using DragaliaBaasServer.Models.Web
+@using System.Security.Claims
+@inject IAccountRepository Repository
+
+<PageTitle>Authorize</PageTitle>
+
+<h1 class="title">Admin interface</h1>
+
+<div class="mainpage">
+    <AuthorizeView>
+        <Authorized>
+            @if (context.User.HasClaim(ClaimTypes.Role, "Administrator"))
+            {
+                <div>
+                    Counts: @_devices.Count Devices, @_users.Count Users, @_webUsers.Count WebUsers
+                </div>
+                <TableTemplate Items="_devices" Context="device">
+                    <TableHeader>
+                        <th>ID</th>
+                        <th>Linked User Account</th>
+                    </TableHeader>
+                    <RowTemplate>
+                        <td>@device.Id</td>
+                        <td>@_users.First(uAccount => uAccount.AssociatedDeviceAccounts.Contains(device)).Id</td>
+                        <button class="button-href" @onclick="() => RemoveDevice(device)">Delete</button>
+                    </RowTemplate>
+                </TableTemplate>
+
+                <TableTemplate Items="_users" Context="user">
+                    <TableHeader>
+                        <th>ID</th>
+                        <th>Linked account id</th>
+                    </TableHeader>
+                    <RowTemplate>
+                        <td>@user.Id</td>
+                        <td>@user.WebUserAccountId</td>
+                    </RowTemplate>
+                </TableTemplate>
+
+                <TableTemplate Items="_webUsers" Context="user">
+                    <TableHeader>
+                        <th>ID</th>
+                        <th>Username</th>
+                    </TableHeader>
+                    <RowTemplate>
+                        <td>@user.Id</td>
+                        <td>@user.Username</td>
+                        <button class="button-href" @onclick="() => RemoveWebUser(user)">Delete</button>
+                    </RowTemplate>
+                </TableTemplate>
+            }
+            else
+            {
+                <h3>no admin panel for you hehe</h3>
+                <a href="https://youareanidiot.cc">Click here for some other interesting admin links :)</a>
+            }
+        </Authorized>
+    </AuthorizeView>
+</div>
+
+@code {
+    private List<DeviceAccount> _devices = new();
+    private List<UserAccount> _users = new();
+    private List<WebUserAccount> _webUsers = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _devices = Repository.GetDeviceAccounts().ToList();
+        _users = Repository.GetUserAccounts().ToList();
+        _webUsers = Repository.GetWebUserAccounts().ToList();
+    }
+
+    private async Task RemoveDevice(DeviceAccount device)
+        => await RemoveAccount(device, Repository.RemoveDeviceAccount, _devices);
+
+    private async Task RemoveWebUser(WebUserAccount webUser)
+        => await RemoveAccount(webUser, Repository.RemoveWebUserAccount, _webUsers);
+
+    private async Task RemoveAccount<T>(T account, Action<T> remove, List<T> collection)
+    {
+        remove(account);
+        await Repository.SaveChangesAsync();
+        collection.Remove(account);
+    }
+
+}

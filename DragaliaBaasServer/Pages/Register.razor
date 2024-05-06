@@ -1,0 +1,92 @@
+﻿@page "/register/{redirectUri?}"
+@using DragaliaBaasServer.Services
+@using DragaliaBaasServer.Models.Web
+@using Microsoft.IdentityModel.Tokens
+@using IAuthorizationService = DragaliaBaasServer.Services.IAuthorizationService
+@inject NavigationManager Navigation
+@inject IAccountService Account
+@inject IAuthorizationService AuthService
+@inject IHostEnvironmentAuthenticationStateProvider Authentication
+
+<PageTitle>Register</PageTitle>
+
+<h1 class="title">Register</h1>
+
+<EditForm EditContext="_editContext" OnValidSubmit="@HandleRegister">
+    <DataAnnotationsValidator/>
+    <ValidationSummary/>
+    
+    <div id="form">
+        <div class="field">
+            <label>Username:</label>
+            <InputText id="username" @bind-Value="_registerModel.Username" />
+        </div>
+    
+        <div class="field">
+            <label>Password:</label>
+            <InputText id="password" type="password" @bind-Value="_registerModel.Password" />
+        </div>
+
+        <button type="submit" class="green-button">Register</button>
+    </div>
+</EditForm>
+
+@code {
+    private EditContext? _editContext;
+    private ValidationMessageStore? _messageStore;
+    private readonly WebUserAccount _registerModel = new();
+
+    [Parameter]
+    public string? RedirectUri { get; set; }
+
+    protected override void OnInitialized()
+    {
+        _editContext = new EditContext(_registerModel);
+        _editContext.OnValidationRequested += HandleValidation;
+        _messageStore = new ValidationMessageStore(_editContext);
+    }
+
+    private void HandleValidation(object? sender, ValidationRequestedEventArgs e)
+    {
+        _messageStore?.Clear();
+
+        switch (_registerModel.Username.Length)
+        {
+            case < 1:
+                _messageStore?.Add(() => _registerModel.Username, "Username too short.");
+                break;
+            case > 255:
+                _messageStore?.Add(() => _registerModel.Username, "Username too long");
+                break;
+            case { } when Account.DoesWebAccountWithUsernameExist(_registerModel.Username):
+                _messageStore?.Add(() => _registerModel.Username, "Username already exists.");
+                break;
+            //case { } when _registerModel.Username.Contains("@"):
+            //    _messageStore?.Add(() => _registerModel.Username, "Please don't use an email for your username.");
+            //    break;
+        }
+
+        switch (_registerModel.Password.Length)
+        {
+            case < 1:
+                _messageStore?.Add(() => _registerModel.Username, "Password too short.");
+                break;
+            case > 255:
+                _messageStore?.Add(() => _registerModel.Username, "Password too long.");
+                break;
+        }
+    }
+
+    private void HandleRegister()
+    {
+        if (Account.TryCreateWebAccount(_registerModel.Username, _registerModel.Password, out var realWebAccount))
+        {
+            Authentication.SetAuthenticationState(AuthService.BuildAuthenticationState(realWebAccount));
+            Account.SaveChangesAsync().ContinueWith(_ => Navigation.NavigateTo(RedirectUri != null ? Base64UrlEncoder.Decode(RedirectUri) : "/"));
+        }
+        else
+        {
+            _messageStore?.Add(() => _registerModel, "Failed to create new account.");
+        }
+    }
+}

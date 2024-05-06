@@ -1,0 +1,24 @@
+﻿.mainpage {
+    display: grid;
+    place-items: center;
+    gap: 10px;
+}
+
+.filebox {
+    aspect-ratio: 1/1;
+    cursor: pointer;
+    height: 45vh;
+    border-radius: 25px;
+    border: dashed rgb(148, 77, 255);
+    display: grid;
+    place-items: center;
+}
+
+/*.mainpage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    margin-top: 5rem;
+}*/

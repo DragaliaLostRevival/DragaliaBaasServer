@@ -1,0 +1,108 @@
+﻿@page "/connect/1.0.0/authorize"
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@using Microsoft.IdentityModel.Tokens
+@using IAuthorizationService = DragaliaBaasServer.Services.IAuthorizationService
+@inject NavigationManager Navigation
+@inject IAuthorizationService Authorization
+
+<PageTitle>Authorize</PageTitle>
+
+<h1 class="title">Authorize</h1>
+
+<div class="mainpage">
+    @if (IsValidRequest)
+    {
+        <AuthorizeView>
+            <Authorized>
+                <h2>Link Account?</h2>
+                <br/>
+                <p>You are about to link your @context.User.Identity?.Name account to this app.</p>
+                <br/>
+                <strong>Proceed?</strong>
+                <br/>
+                <button @onclick="() => RedirectToApp(context)">Link account</button>
+            </Authorized>
+            <NotAuthorized>
+                <p>You are <strong>not</strong> logged in.</p>
+                <br/>
+                <button class="button-href" @onclick='() => Redirect("/login")'>Login</button> or <button class="button-href" @onclick='() => Redirect("/register")'>register an account.</button>
+            </NotAuthorized>
+        </AuthorizeView>
+    }
+    else
+    {
+        <p>
+            <strong>Error:</strong> Invalid parameters.
+        </p>
+    }
+</div>
+
+@code {
+
+    #region Query
+
+    [Required]
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "client_id")]
+    public string? ClientId { get; set; }
+    
+    [Required]
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "redirect_uri")]
+    public string? RedirectUri { get; set; }
+    
+    [Required]
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "response_type")]
+    public string? ResponseType { get; set; }
+    
+    [Required]
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "scope")]
+    public string? Scope { get; set; }
+    
+    [Required]
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "session_token_code_challenge")]
+    public string? SessionTokenCodeChallenge { get; set; }
+    
+    [Required]
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "session_token_code_challenge_method")]
+    public string? SessionTokenCodeChallengeMethod { get; set; }
+    
+    [Required]
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "state")]
+    public string? State { get; set; }
+
+    #endregion
+
+    #region Expected parameter values
+
+    private const string ExpectedClientId = "5192a0623a51561a";
+    private const string ExpectedRedirectUri = "npf5192a0623a51561a://auth";
+    private const string ExpectedResponseType = "session_token_code";
+    private const string ExpectedScopes = "user user.birthday openid";
+    private const string ExpectedSessionTokenCodeChallengeMethod = "S256";
+
+    #endregion
+
+    private bool IsValidRequest =>
+        ClientId == ExpectedClientId
+        && RedirectUri == ExpectedRedirectUri
+        && ExpectedResponseType == ResponseType
+        && Scope == ExpectedScopes
+        && SessionTokenCodeChallengeMethod == ExpectedSessionTokenCodeChallengeMethod;
+
+    private void RedirectToApp(AuthenticationState state)
+    {
+        var redirectUri = Authorization.GenerateRedirectUri(state.User.FindFirst(ClaimTypes.NameIdentifier)!.Value, ExpectedRedirectUri, SessionTokenCodeChallenge!, State!);
+        Navigation.NavigateTo(redirectUri);
+    }
+
+    private void Redirect(string page)
+        => Navigation.NavigateTo($"{page}/{Base64UrlEncoder.Encode(Navigation.Uri)}");
+
+}

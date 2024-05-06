@@ -1,0 +1,68 @@
+﻿@page "/login/{redirectUri?}"
+@using DragaliaBaasServer.Services
+@using DragaliaBaasServer.Models.Web
+@using Microsoft.IdentityModel.Tokens
+@using IAuthorizationService = DragaliaBaasServer.Services.IAuthorizationService
+@inject NavigationManager Navigation
+@inject IAccountService Account
+@inject IAuthorizationService AuthService
+@inject IHostEnvironmentAuthenticationStateProvider Authentication
+
+<PageTitle>Login</PageTitle>
+
+<h1 class="title">Login</h1>
+
+<EditForm EditContext="_editContext" OnSubmit="@HandleLogin" >
+    <DataAnnotationsValidator/>
+    <ValidationSummary/>
+    
+    <div id="form">
+        <div class="field">
+            <label>Username:</label>
+            <InputText id="username" @bind-Value="_loginModel.Username" />
+        </div>
+    
+        <div class="field">
+            <label>Password:</label>
+            <InputText id="password" type="password" @bind-Value="_loginModel.Password" />
+        </div>
+
+        <button type="submit" class="green-button">Login</button>
+    </div>
+</EditForm>
+
+@code {
+    private EditContext? _editContext;
+    private ValidationMessageStore? _messageStore;
+    private readonly WebUserAccount _loginModel = new();
+
+    [Parameter]
+    public string? RedirectUri { get; set; }
+
+    protected override void OnInitialized()
+    {
+        _editContext = new EditContext(_loginModel);
+        _messageStore = new ValidationMessageStore(_editContext);
+    }
+
+    private void HandleLogin()
+    {
+        _messageStore?.Clear();
+
+        if (!_editContext!.Validate())
+            return;
+
+        if (Account.TryLoginWebAccount(_loginModel.Username, _loginModel.Password, out var realWebAccount))
+        {
+            Authentication.SetAuthenticationState(AuthService.BuildAuthenticationState(realWebAccount));
+        }
+        else
+        {
+            _messageStore?.Add(() => _loginModel, "Invalid combination.");
+            return;
+        }
+
+
+        Navigation.NavigateTo(RedirectUri != null ? Base64UrlEncoder.Decode(RedirectUri) : "/");
+    }
+}

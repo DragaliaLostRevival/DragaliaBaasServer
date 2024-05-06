@@ -1,0 +1,122 @@
+﻿@page "/custom/thirdparty/auth"
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@using Microsoft.IdentityModel.Tokens
+@using IAuthorizationService = DragaliaBaasServer.Services.IAuthorizationService
+@inject NavigationManager Navigation
+@inject IAuthorizationService Authorization
+
+<PageTitle>Third-Party Login</PageTitle>
+
+<div class="mainpage">
+    @if (IsValidRequest)
+    {
+        <AuthorizeView>
+            <Authorized>
+                <h2>Login using Dragalia</h2>
+                <br/>
+                <p>You are about to login with your Dragalia account to @RedirectHost.</p>
+                <br/>
+                <strong>Proceed?</strong>
+                <br/>
+                <button class="green-button" @onclick="() => RedirectToApp(context)">Login</button>
+            </Authorized>
+            <NotAuthorized>
+                <p>You are <strong>not</strong> logged in.</p>
+                <br />
+                <div>
+                    <a @onclick='() => Redirect("/login")' class="button-href">Login</a>
+                </div>
+                <div>
+                    <a @onclick='() => Redirect("/register")' class="button-href">Register</a>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
+    }
+    else
+    {
+        <p>
+            <strong>Error:</strong> Invalid parameters.
+        </p>
+    }
+</div>
+
+@code {
+
+    #region Query
+
+    [Required]
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "client_id")]
+    public string? ClientId { get; set; }
+    
+    [Required]
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "redirect_uri")]
+    public string? RedirectUri { get; set; }
+    
+    [Required]
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "response_type")]
+    public string? ResponseType { get; set; }
+    
+    [Required]
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "scope")]
+    public string? Scope { get; set; }
+    
+    [Required]
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "session_token_code_challenge")]
+    public string? SessionTokenCodeChallenge { get; set; }
+    
+    [Required]
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "session_token_code_challenge_method")]
+    public string? SessionTokenCodeChallengeMethod { get; set; }
+    
+    [Required]
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "state")]
+    public string? State { get; set; }
+
+    private string RedirectHost => RedirectUri == null ? "<invalid>" : TryParseRedirectUri();
+
+    #endregion
+
+    #region Expected parameter values
+
+    private const string ExpectedResponseType = "session_token_code";
+    private const string ExpectedSessionTokenCodeChallengeMethod = "S256";
+
+    #endregion
+
+    private bool IsValidRequest =>
+        RedirectUri != null
+        && ClientId != null
+        && SessionTokenCodeChallenge != null
+        && ExpectedResponseType == ResponseType
+        && SessionTokenCodeChallengeMethod == ExpectedSessionTokenCodeChallengeMethod;
+
+    private string TryParseRedirectUri()
+    {
+        try
+        {
+            return new Uri(RedirectUri!).Host;
+        }
+        catch (Exception _)
+        {
+            return "<malformed url>";
+        }
+    }
+
+    private void RedirectToApp(AuthenticationState state)
+    {
+        var redirectUri = Authorization.GenerateRedirectUri(state.User.FindFirst(ClaimTypes.NameIdentifier)!.Value, RedirectUri!, SessionTokenCodeChallenge!, State!);
+        Navigation.NavigateTo(redirectUri.Replace("#", "?"));
+    }
+
+    private void Redirect(string page)
+        => Navigation.NavigateTo($"{page}/{Base64UrlEncoder.Encode(Navigation.Uri)}");
+
+}

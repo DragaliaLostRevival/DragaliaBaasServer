@@ -1,0 +1,21 @@
+﻿#form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    margin-top: 3rem;
+    gap: 2rem;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+}
+
+.title {
+    margin-top: 2rem;
+    text-align: center;
+}

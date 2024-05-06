@@ -1,0 +1,37 @@
+﻿@page "/linkresult"
+@using DragaliaBaasServer.Services
+@inject NavigationManager Navigation
+
+
+<PageTitle>Patreon Link Result</PageTitle>
+
+<div class="mainpage">
+    @{
+        if (!Enum.TryParse(Result ?? "", out PatreonLinkResult val))
+            val = PatreonLinkResult.UnknownError;
+    }
+    
+    @switch (val)
+    {
+        case PatreonLinkResult.UnknownError:
+            <p>An <strong>unknown error</strong> occurred while linking your Patreon account.</p>
+            break;
+        case PatreonLinkResult.AlreadyLinked:
+            <p>Your Patreon account is <strong>already linked</strong> to another BaaS account.</p>
+            <br/>
+            <p>Please unlink it first, then try to add it to your new account again.</p>
+            break;
+        case PatreonLinkResult.Success:
+            <p><strong>Successfully</strong> linked your Patreon account to a BaaS account.</p>
+            break;
+    }
+    
+    <button class="button-href" @onclick='() => Navigation.NavigateTo("/")'>Go back</button>
+</div>
+
+
+@code {
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "patreonResult")]
+    public string? Result { get; set; }
+}
