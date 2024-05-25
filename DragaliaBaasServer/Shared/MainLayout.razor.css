@@ -71,7 +71,7 @@ main {
 
 #blazor-error-ui {
     text-align: left;
-    background: rgb(255, 50, 50);
+    background: rgb(110, 57, 191);
     bottom: 0;
     box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
     display: none;
@@ -80,6 +80,10 @@ main {
     position: fixed;
     width: 100%;
     z-index: 1000;
+}
+
+#blazor-error-ui .reload {
+    color: aquamarine;
 }
 
 #blazor-error-ui .dismiss {
