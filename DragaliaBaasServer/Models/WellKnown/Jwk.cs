@@ -1,6 +1,6 @@
 ﻿using Microsoft.IdentityModel.Tokens;
 
-namespace DragaliaBaasServer.Models.Jwk;
+namespace DragaliaBaasServer.Models.WellKnown;
 
 public class Jwk
 {

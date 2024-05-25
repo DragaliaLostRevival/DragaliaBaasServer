@@ -2,8 +2,8 @@
 using DragaliaBaasServer.Models;
 using DragaliaBaasServer.Models.Backend;
 using DragaliaBaasServer.Models.Core;
-using DragaliaBaasServer.Models.Jwk;
 using DragaliaBaasServer.Models.Web;
+using DragaliaBaasServer.Models.WellKnown;
 using Microsoft.AspNetCore.Components.Authorization;
 
 namespace DragaliaBaasServer.Services;
@@ -18,4 +18,5 @@ public interface IAuthorizationService
     public string GenerateRedirectUri(string webUserId, string redirectUriPrefix, string code, string state);
     public bool TryRedeemSessionTokenCode(string stcJwt, string stcCode, [NotNullWhen(true)] out string? webUserId);
     public Task<AuthenticationState> BuildAuthenticationState(WebUserAccount webAccount);
+    public OpenIdConnectConfiguration GetOpenIdConnectConfiguration();
 }

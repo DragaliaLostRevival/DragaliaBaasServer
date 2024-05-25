@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
+using DragaliaBaasServer.Models.WellKnown;
 using DragaliaBaasServer.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,11 +8,11 @@ namespace DragaliaBaasServer.Controllers;
 
 [ApiController]
 [Route(".well-known")]
-public class JwkController : ControllerBase
+public class WellKnownController : ControllerBase
 {
     private readonly IAuthorizationService _authorizationService;
 
-    public JwkController(IAuthorizationService authorizationService)
+    public WellKnownController(IAuthorizationService authorizationService)
     {
         _authorizationService = authorizationService;
     }
@@ -20,5 +21,11 @@ public class JwkController : ControllerBase
     public IActionResult GetJwks()
     {
         return Ok(_authorizationService.GetJwks());
+    }
+
+    [Route("openid-configuration")]
+    public IActionResult GetOpenIdConfiguration()
+    {
+        return Ok(_authorizationService.GetOpenIdConnectConfiguration());
     }
 }

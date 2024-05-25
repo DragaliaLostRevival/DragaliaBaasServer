@@ -5,16 +5,29 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
 using System.Text;
 using DragaliaBaasServer.Models.Backend;
-using DragaliaBaasServer.Models.Jwk;
 using DragaliaBaasServer.Models.Web;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Components.Authorization;
 using System.Security.Claims;
+using DragaliaBaasServer.Models.WellKnown;
 
 namespace DragaliaBaasServer.Services;
 
 public class AuthorizationService : IAuthorizationService
 {
+    private static readonly OpenIdConnectConfiguration OpenIdConnectConfiguration = new()
+    {
+        JwksUri = Constants.ServerUrl + "/.well-known/jwks.json",
+        ClaimsSupported = new[]
+        {
+            "sub", "iss", "exp", "aud", "sav:a", "sav:ts", "p:id"
+        },
+        IdTokenSigningAlgValuesSupported = new[]
+        {
+            "S256"
+        },
+    };
+        
     private readonly ILogger _logger;
 
     private readonly string _jwtIssuer;
@@ -212,5 +225,10 @@ public class AuthorizationService : IAuthorizationService
 
         principal.AddIdentity(identity);
         return Task.FromResult(new AuthenticationState(principal));
+    }
+
+    public OpenIdConnectConfiguration GetOpenIdConnectConfiguration()
+    {
+        return OpenIdConnectConfiguration;
     }
 }
