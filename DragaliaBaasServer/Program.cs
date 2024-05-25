@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using DragaliaBaasServer.Database;
 using DragaliaBaasServer.Middleware;
 using DragaliaBaasServer.Models.Backend;
@@ -7,7 +8,6 @@ using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
 using Serilog;
 using Serilog.Events;
-using Serilog.Formatting.Compact;
 
 namespace DragaliaBaasServer;
 
@@ -23,6 +23,8 @@ public class Program
             .CreateBootstrapLogger();
 
         var builder = WebApplication.CreateBuilder(args);
+            
+        builder.WebHost.UseStaticWebAssets();
 
         builder.Logging.ClearProviders();
         builder.Logging.AddSerilog();
@@ -42,8 +44,11 @@ public class Program
                     .WriteTo.File("logs/baas-log-.txt", rollingInterval: RollingInterval.Day)
         );
 
-        builder.Services.AddRazorPages();
-        builder.Services.AddServerSideBlazor();
+        builder.Services
+            .AddRazorComponents()
+            .AddInteractiveServerComponents();
+        
+        builder.Services.AddCascadingAuthenticationState();
 
         // Add services to the container.
         builder.Services.ConfigureDbServices();
@@ -58,13 +63,21 @@ public class Program
         builder.Services.AddHttpClient();
         builder.Services.AddScoped<PatreonService>();
 
-        builder.Services.AddControllers();
+        builder.Services.AddControllers().AddJsonOptions(x =>
+        {
+            x.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        });
 
         var app = builder.Build();
 
         if (app.Environment.IsDevelopment() || true)
             app.MigrateDb();
 
+        if (!app.Environment.IsDevelopment())
+        {
+            app.UseExceptionHandler("/Error", createScopeForErrors: true);
+        }
+        
         using var scope = app.Services.CreateScope();
         var dbCtx = scope.ServiceProvider.GetRequiredService<BaasDbContext>();
         Log.Information("Database information: {webUserCount} Web Accounts, {userCount} Users, {deviceCount} Devices", dbCtx.WebUsers.Count(), dbCtx.Users.Count(), dbCtx.Devices.Count());
@@ -78,9 +91,9 @@ public class Program
         app.UseAuthentication();
 
         app.UseRouting();
+        app.UseAntiforgery();
 
-        app.MapBlazorHub();
-        app.MapFallbackToPage("/_Host");
+        app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 
         app.MapControllers();
 

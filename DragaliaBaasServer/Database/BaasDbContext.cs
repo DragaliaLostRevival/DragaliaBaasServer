@@ -16,8 +16,9 @@ public class BaasDbContext : DbContext
     {
         modelBuilder.Entity<UserAccount>(builder =>
         {
-            builder.Navigation(_ => _.WebUserAccount).AutoInclude();
-            builder.Navigation(_ => _.AssociatedDeviceAccounts).AutoInclude();
+            builder.Navigation(u => u.WebUserAccount).AutoInclude();
+            builder.Navigation(u => u.AssociatedDeviceAccounts).AutoInclude();
+            builder.Navigation(u => u.VcmInfo).AutoInclude();
         });
     }
 }
