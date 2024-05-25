@@ -69,6 +69,11 @@ public class Program
         if (app.Environment.IsDevelopment() || true)
             app.MigrateDb();
 
+        if (!app.Environment.IsDevelopment())
+        {
+            app.UseExceptionHandler("/Error", createScopeForErrors: true);
+        }
+        
         using var scope = app.Services.CreateScope();
         var dbCtx = scope.ServiceProvider.GetRequiredService<BaasDbContext>();
         Log.Information("Database information: {webUserCount} Web Accounts, {userCount} Users, {deviceCount} Devices", dbCtx.WebUsers.Count(), dbCtx.Users.Count(), dbCtx.Devices.Count());
