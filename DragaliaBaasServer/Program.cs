@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using DragaliaBaasServer.Database;
 using DragaliaBaasServer.Middleware;
 using DragaliaBaasServer.Models.Backend;
@@ -62,7 +63,10 @@ public class Program
         builder.Services.AddHttpClient();
         builder.Services.AddScoped<PatreonService>();
 
-        builder.Services.AddControllers();
+        builder.Services.AddControllers().AddJsonOptions(x =>
+        {
+            x.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        });
 
         var app = builder.Build();
 
