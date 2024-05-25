@@ -12,7 +12,10 @@ public static class DatabaseConfig
         services
             .AddDbContext<BaasDbContext>(options =>
             {
-                options.UseNpgsql(BuildConnectionString());
+                options.UseNpgsql(
+                    BuildConnectionString(),
+                    x => x.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
+                );
             })
             .AddScoped<IAccountRepository, DbAccountRepository>();
 
