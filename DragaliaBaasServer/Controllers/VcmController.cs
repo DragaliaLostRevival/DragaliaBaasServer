@@ -24,6 +24,12 @@ public class VcmController : ControllerBase
     [Route("markets/{marketName:alpha}/bundles")]
     public IActionResult GetVcmBundleInfoForMarket(string marketName)
     {
+        var fuck = "this endpoint";
+        return Ok(new
+        {
+            fuck
+        });
+
         if (Enum.TryParse(marketName, true, out VcmMarket market))
             return Ok(VcmBundle.GetEmptyBundlesForMarket(market));
 
