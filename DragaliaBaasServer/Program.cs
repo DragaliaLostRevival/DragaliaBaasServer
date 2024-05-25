@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
 using Serilog;
 using Serilog.Events;
-using Serilog.Formatting.Compact;
 
 namespace DragaliaBaasServer;
 
@@ -23,6 +22,8 @@ public class Program
             .CreateBootstrapLogger();
 
         var builder = WebApplication.CreateBuilder(args);
+            
+        builder.WebHost.UseStaticWebAssets();
 
         builder.Logging.ClearProviders();
         builder.Logging.AddSerilog();
@@ -42,8 +43,11 @@ public class Program
                     .WriteTo.File("logs/baas-log-.txt", rollingInterval: RollingInterval.Day)
         );
 
-        builder.Services.AddRazorPages();
-        builder.Services.AddServerSideBlazor();
+        builder.Services
+            .AddRazorComponents()
+            .AddInteractiveServerComponents();
+        
+        builder.Services.AddCascadingAuthenticationState();
 
         // Add services to the container.
         builder.Services.ConfigureDbServices();
@@ -78,9 +82,9 @@ public class Program
         app.UseAuthentication();
 
         app.UseRouting();
+        app.UseAntiforgery();
 
-        app.MapBlazorHub();
-        app.MapFallbackToPage("/_Host");
+        app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 
         app.MapControllers();
 
