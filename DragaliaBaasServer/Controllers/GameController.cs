@@ -73,12 +73,13 @@ public class GameController : ControllerBase
     public ActionResult<WebUserResponse> GetWebUser()
     {
         if (!AuthenticationHeaderValue.TryParse(HttpContext.Request.Headers.Authorization, out var authHeaderValue)
-            || authHeaderValue.Parameter is null)
+            || authHeaderValue.Parameter is null
+            || !_authorizationService.TryParseToken(authHeaderValue.Parameter , out string? userId))
         {
             return Unauthorized();
         }
 
-        if (!_accountService.TryGetUserAccount(authHeaderValue.Parameter, out UserAccount? userAccount)
+        if (!_accountService.TryGetUserAccount(userId, out UserAccount? userAccount)
             || userAccount.WebUserAccount is null)
         {
             return NotFound();
