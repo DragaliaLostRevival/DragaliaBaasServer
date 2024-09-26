@@ -74,7 +74,7 @@ public class GameController : ControllerBase
     {
         if (!AuthenticationHeaderValue.TryParse(HttpContext.Request.Headers.Authorization, out var authHeaderValue)
             || authHeaderValue.Parameter is null
-            || !_authorizationService.TryParseToken(authHeaderValue.Parameter , out string? userId))
+            || !_authorizationService.TryParseToken(authHeaderValue.Parameter, out string? userId))
         {
             return Unauthorized();
         }
