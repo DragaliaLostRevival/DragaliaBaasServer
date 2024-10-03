@@ -1,5 +1,7 @@
-﻿using DragaliaBaasServer.Models.Game;
+using System.Net.Http.Headers;
+using DragaliaBaasServer.Models.Game;
 using DragaliaBaasServer.Services;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DragaliaBaasServer.Controllers;
@@ -67,5 +69,27 @@ public class GameController : ControllerBase
         return Ok(new LinkedUserResponse(userAccount.Id));
     }
 
+    [HttpGet("webUser")]
+    public Results<UnauthorizedHttpResult, NotFound, Ok<WebUserResponse>> GetWebUser()
+    {
+        if (!AuthenticationHeaderValue.TryParse(HttpContext.Request.Headers.Authorization, out var authInfo)
+            || authInfo.Scheme != "Bearer"
+            || authInfo.Parameter == null
+            || !_authorizationService.TryParseToken(authInfo.Parameter, out var userId))
+        {
+            return TypedResults.Unauthorized();
+        }
+
+        if (!_accountService.TryGetUserAccount(userId, out var userAccount)
+            || userAccount.WebUserAccount == null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return TypedResults.Ok(new WebUserResponse(userAccount.WebUserAccount.Id, userAccount.WebUserAccount.Username));
+    }
+
     public record LinkedUserResponse(string UserId);
+
+    public record WebUserResponse(string WebUserId, string Username);
 }
