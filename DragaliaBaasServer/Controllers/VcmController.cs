@@ -20,7 +20,7 @@ public class VcmController : ControllerBase
         _authorizationService = authorizationService;
     }
 
-    [HttpGet]
+    /*[HttpGet]
     [Route("markets/{marketName:alpha}/bundles")]
     public IActionResult GetVcmBundleInfoForMarket(string marketName)
     {
@@ -56,5 +56,5 @@ public class VcmController : ControllerBase
             return Ok(userAccount.GetVcmWalletsForMarket(market));
 
         return BadRequest("Invalid market.");
-    }
+    }*/
 }
