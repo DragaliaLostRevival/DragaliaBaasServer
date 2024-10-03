@@ -69,18 +69,18 @@ public class GameController : ControllerBase
         return Ok(new LinkedUserResponse(userAccount.Id));
     }
 
-    [Route("webUser")]
+    [HttpGet("webUser")]
     public Results<UnauthorizedHttpResult, NotFound, Ok<WebUserResponse>> GetWebUser()
     {
         if (!AuthenticationHeaderValue.TryParse(HttpContext.Request.Headers.Authorization, out var authInfo)
             || authInfo.Scheme != "Bearer"
             || authInfo.Parameter == null
-            || !_authorizationService.TryParseToken(authInfo.Parameter, out var webUserId))
+            || !_authorizationService.TryParseToken(authInfo.Parameter, out var userId))
         {
             return TypedResults.Unauthorized();
         }
 
-        if (!_accountService.TryGetUserAccount(webUserId, out var userAccount)
+        if (!_accountService.TryGetUserAccount(userId, out var userAccount)
             || userAccount.WebUserAccount == null)
         {
             return TypedResults.NotFound();
