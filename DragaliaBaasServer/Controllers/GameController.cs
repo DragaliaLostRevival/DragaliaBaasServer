@@ -1,7 +1,7 @@
-﻿using System.Net.Http.Headers;
-using DragaliaBaasServer.Models.Backend;
+using System.Net.Http.Headers;
 using DragaliaBaasServer.Models.Game;
 using DragaliaBaasServer.Services;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DragaliaBaasServer.Controllers;
@@ -69,23 +69,24 @@ public class GameController : ControllerBase
         return Ok(new LinkedUserResponse(userAccount.Id));
     }
 
-    [HttpGet("webUser")]
-    public ActionResult<WebUserResponse> GetWebUser()
+    [Route("webUser")]
+    public Results<UnauthorizedHttpResult, NotFound, Ok<WebUserResponse>> GetWebUser()
     {
-        if (!AuthenticationHeaderValue.TryParse(HttpContext.Request.Headers.Authorization, out var authHeaderValue)
-            || authHeaderValue.Parameter is null
-            || !_authorizationService.TryParseToken(authHeaderValue.Parameter, out string? userId))
+        if (!AuthenticationHeaderValue.TryParse(HttpContext.Request.Headers.Authorization, out var authInfo)
+            || authInfo.Scheme != "Bearer"
+            || authInfo.Parameter == null
+            || !_authorizationService.TryParseToken(authInfo.Parameter, out var webUserId))
         {
-            return Unauthorized();
+            return TypedResults.Unauthorized();
         }
 
-        if (!_accountService.TryGetUserAccount(userId, out UserAccount? userAccount)
-            || userAccount.WebUserAccount is null)
+        if (!_accountService.TryGetUserAccount(webUserId, out var userAccount)
+            || userAccount.WebUserAccount == null)
         {
-            return NotFound();
+            return TypedResults.NotFound();
         }
 
-        return new WebUserResponse(userAccount.WebUserAccount.Id, userAccount.WebUserAccount.Username);
+        return TypedResults.Ok(new WebUserResponse(userAccount.WebUserAccount.Id, userAccount.WebUserAccount.Username));
     }
 
     public record LinkedUserResponse(string UserId);
