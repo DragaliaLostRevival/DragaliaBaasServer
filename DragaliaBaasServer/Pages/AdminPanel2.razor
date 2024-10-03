@@ -1,0 +1,45 @@
+﻿@page "/admin2"
+@using DragaliaBaasServer.Database.Repositories
+@using DragaliaBaasServer.Models.Backend
+@using System.Security.Claims
+@inject IAccountRepository Repository
+
+<PageTitle>Authorize</PageTitle>
+
+<h1 class="title">Admin interface</h1>
+
+<div class="mainpage">
+    <AuthorizeView>
+        <Authorized>
+            @if (context.User.HasClaim(ClaimTypes.Role, "Administrator"))
+            {
+                <TableTemplate Items="_devices" Context="device">
+                    <TableHeader>
+                        <th>ID</th>
+                        <th>Linked User Account</th>
+                    </TableHeader>
+                    <RowTemplate>
+                        <td>@device.Id</td>
+                        <td>@_users.First(uAccount => uAccount.AssociatedDeviceAccounts.Contains(device)).Id</td>
+                    </RowTemplate>
+                </TableTemplate>
+            }
+            else
+            {
+                <h3>no admin panel for you hehe</h3>
+                <a href="https://youareanidiot.cc">Click here for some other interesting admin links :)</a>
+            }
+        </Authorized>
+    </AuthorizeView>
+</div>
+
+@code {
+    private List<DeviceAccount> _devices = new();
+    private List<UserAccount> _users = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _devices = Repository.GetDeviceAccounts().ToList();
+        _users = Repository.GetUserAccounts().ToList();
+    }
+}
